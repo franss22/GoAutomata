@@ -1,0 +1,11 @@
+{
+  "go.inlayHints.assignVariableTypes": true,
+  "go.testOnSave": false,
+  "go.inlayHints.parameterNames": true,
+  "go.inlayHints.rangeVariableTypes": true,
+  "go.inlayHints.functionTypeParameters": true,
+  "go.inlayHints.constantValues": true,
+  "go.inlayHints.compositeLiteralFields": true,
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true
+}
