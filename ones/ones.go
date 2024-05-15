@@ -1,8 +1,6 @@
 package ones
 
 import (
-	"fmt"
-
 	"github.com/fatih/color"
 )
 
@@ -73,53 +71,6 @@ func (o *Ones) CheckRightsideGaps(index int) bool {
 	return index < o.Size-1-o.RightmostOnes
 }
 
-// Moves the noxt one in o.List.
-// Returns true while it can still move, false when no more ones can be moved
-func (o *Ones) MoveNext() bool {
-	fmt.Print(color.YellowString("%d -> ", o.List))
-
-	if o.OneAmount == 0 || o.OneAmount == o.Size {
-		return false
-	}
-	if o.CanMove(o.MovingIndex) { //A: Mover I a la derecha
-		fmt.Print(color.GreenString("A (%d): ", o.MovingIndex))
-		o.MoveOneRightOnce(o.MovingIndex)
-		o.MovingIndex++
-		return true
-	} else { //B: I llegó al final, hay que mover el siguiente 1
-		fmt.Print(color.GreenString(" B: "))
-
-		o.CountRightmostOnes()
-		if o.RightmostOnes == o.OneAmount { // E: Todos los 1s están al final de la lista
-			fmt.Print(color.GreenString("E: "))
-			return false
-		}
-		o.MovingIndex = o.LastOneIndex()
-
-		if !o.CanMove(o.MovingIndex) { //...huh?
-			color.Red("huh?=%v", o)
-			return false
-		}
-
-		o.MoveOneRightOnce(o.MovingIndex)
-		o.MovingIndex++
-		if o.CheckRightsideGaps(o.MovingIndex) { //C
-
-			fmt.Print(color.GreenString("C: "))
-			o.RegroupLeft(o.MovingIndex + 1)
-			o.MovingIndex = o.LastOneIndex()
-			return true
-
-		} else { //D
-			fmt.Print(color.GreenString("D: "))
-			o.RightmostOnes++
-			return true
-		}
-
-	}
-
-}
-
 // Reagroupa todos los rightmostOnes a la derecha de index, y rellena el resto con 0s
 func (o *Ones) RegroupLeft(index int) {
 	//Mueve todos los rightmostOnes a la derecha de index
@@ -143,6 +94,52 @@ func (o *Ones) CountRightmostOnes() {
 	for last_bit >= 0 && o.List[last_bit] == 1 {
 		last_bit--
 		o.RightmostOnes++
+	}
+}
+
+// Moves the noxt one in o.List.
+// Returns true while it can still move, false when no more ones can be moved
+func (o *Ones) Next() bool {
+	//fmt.print(color.YellowString("%d -> ", o.List))
+
+	if o.OneAmount == 0 || o.OneAmount == o.Size {
+		return false
+	}
+	if o.CanMove(o.MovingIndex) { //A: Mover I a la derecha
+		//fmt.print(color.GreenString("A (%d): ", o.MovingIndex))
+		o.MoveOneRightOnce(o.MovingIndex)
+		o.MovingIndex++
+		return true
+	} else { //B: I llegó al final, hay que mover el siguiente 1
+		//fmt.print(color.GreenString(" B: "))
+
+		o.CountRightmostOnes()
+		if o.RightmostOnes == o.OneAmount { // E: Todos los 1s están al final de la lista
+			//fmt.print(color.GreenString("E: "))
+			return false
+		}
+		o.MovingIndex = o.LastOneIndex()
+
+		if !o.CanMove(o.MovingIndex) { //...huh?
+			color.Red("huh?=%v", o)
+			return false
+		}
+
+		o.MoveOneRightOnce(o.MovingIndex)
+		o.MovingIndex++
+		if o.CheckRightsideGaps(o.MovingIndex) { //C
+
+			//fmt.print(color.GreenString("C: "))
+			o.RegroupLeft(o.MovingIndex + 1)
+			o.MovingIndex = o.LastOneIndex()
+			return true
+
+		} else { //D
+			//fmt.print(color.GreenString("D: "))
+			o.RightmostOnes++
+			return true
+		}
+
 	}
 
 }

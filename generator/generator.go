@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"automata/combinations"
 	"automata/timecea"
 	"automata/types"
 
@@ -107,6 +108,29 @@ func PowerSetFound(
 	length := tc.TestAutomataForPareto(maxWLen, paretoNum)
 
 	return (length != -1), length
+}
+
+func PowerSet(transitions *[]types.Transition,
+	maxWLen int,
+	statesAmt int,
+	paretoNum int,
+) int {
+	size := len(*transitions)
+	n := combinations.New(size)
+	for trAmt := range size + 1 {
+		n.Reset(trAmt)
+		for ok := true; ok; {
+			testCase := make([]types.Transition, trAmt)
+			for i, index := range n.List {
+				testCase[i] = (*transitions)[index]
+			}
+			if found, length := PowerSetFound(&testCase, maxWLen, statesAmt, paretoNum); found {
+				return length
+			}
+			ok = n.Next()
+		}
+	}
+	return -1
 }
 
 // func PowerSet(

@@ -1,7 +1,3 @@
 {
-  "recommendations": [
-    "golang.go",
-    "windmilleng.vscode-go-autotest",
-    "ngodinginindonesia.go-comments"
-  ]
+  "recommendations": ["golang.go", "ngodinginindonesia.go-comments"]
 }

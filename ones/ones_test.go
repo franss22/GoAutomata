@@ -46,7 +46,7 @@ func TestResetFull(t *testing.T) {
 func TestMoveNextOnce(t *testing.T) {
 	ones := New(5)
 	ones.Reset(1)
-	ok := ones.MoveNext()
+	ok := ones.Next()
 	assert.Equal(t, true, ok)
 
 	assertOnes(t, ones, []int{0, 1, 0, 0, 0}, 1, 0)
@@ -55,9 +55,9 @@ func TestMoveNextOnce(t *testing.T) {
 func TestMoveNextTwice(t *testing.T) {
 	ones := New(5)
 	ones.Reset(1)
-	ok := ones.MoveNext()
+	ok := ones.Next()
 	assert.Equal(t, true, ok)
-	ok = ones.MoveNext()
+	ok = ones.Next()
 	assert.Equal(t, true, ok)
 
 	assertOnes(t, ones, []int{0, 0, 1, 0, 0}, 1, 0)
