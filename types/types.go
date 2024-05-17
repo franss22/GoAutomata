@@ -1,5 +1,9 @@
 package types
 
+import (
+	"sort"
+)
+
 const NO_COND Time = -1
 
 type Letter byte
@@ -30,6 +34,8 @@ type Clock struct {
 	Clock2 Time
 }
 
+type ClockSet map[Clock]struct{}
+
 func (c *Clock) LessOrEqualThan(c2 Clock) bool {
 	return c.Clock1 <= c2.Clock1 && c.Clock2 <= c2.Clock2
 }
@@ -57,24 +63,39 @@ func (c *Clock) ProcessWordNewClock(w Word) Clock {
 
 // O(n)
 // (2,1) (1,2) (3,3) devuelve (2,1) (1,2)
-func (c *Clock) IsMinimal(clocks []Clock) bool {
-	for _, clock := range clocks {
-		if clock == *c {
+func (clock *Clock) IsMinimal(clocks []Clock) bool {
+	for _, otherclock := range clocks {
+		if otherclock == *clock {
 			continue
 		}
-		if clock.LessOrEqualThan(*c) {
+		if otherclock.LessOrEqualThan(*clock) {
 			return false
 		}
 	}
 	return true
 }
 
+func (clockset ClockSet) Sort() []Clock {
+	result := []Clock{}
+	for clock := range clockset {
+		result = append(result, clock)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].LessOrEqualThan(result[j])
+	})
+
+	return result
+}
+
 // O(n^2) (podría ser O(nlogn))
-func GetPareto(cs []Clock) []Clock {
-	ret := make([]Clock, len(cs))
-	for _, clock := range cs {
-		if clock.IsMinimal(cs) {
-			ret = append(ret, clock)
+func GetPareto(cs ClockSet) ClockSet {
+	ret := ClockSet{}
+	sortedClocks := cs.Sort()
+
+	// fmt.Print(sortedClocks, "\n")
+	for clock := range cs {
+		if clock.IsMinimal(sortedClocks) {
+			ret[clock] = struct{}{}
 		}
 	}
 	return ret

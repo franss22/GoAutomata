@@ -4,8 +4,11 @@ import (
 	"automata/combinations"
 	"automata/timecea"
 	"automata/types"
+	"fmt"
 
 	"github.com/fatih/color"
+	"github.com/schollz/progressbar/v3"
+	"gonum.org/v1/gonum/stat/combin"
 )
 
 var resetOptions = [...]types.ClockReset{
@@ -16,7 +19,7 @@ var resetOptions = [...]types.ClockReset{
 }
 
 func GenerateAllTransitions(paretoNum int, statesAmt int) []types.Transition {
-	maxConds := max(2*statesAmt, 2*paretoNum)
+	maxConds := max(statesAmt*2, paretoNum*2)
 	resultSize := (maxConds + 1) * (maxConds + 1) * 4 * 1 * statesAmt * statesAmt
 	result := make([]types.Transition, 0, resultSize)
 	color.Yellow("cap=%d, len=%d, resultSize=%d", cap(result), len(result), resultSize)
@@ -58,41 +61,41 @@ func GenerateAllTransitions(paretoNum int, statesAmt int) []types.Transition {
 	return result
 }
 
-func PowerSetOld(
-	transitions *[]types.Transition,
-	index int,
-	curr *[]types.Transition,
-	maxWLen int,
-	statesAmt int,
-	paretoNum int,
-) int {
-	n := len(*transitions)
-	if index == n-1 {
-		color.Cyan("Got to end of recursion, n=%d", n)
-		tc := timecea.New(statesAmt)
-		for _, tr := range *transitions {
-			tc.RegisterTransition(tr)
-		}
-		length := tc.TestAutomataForPareto(maxWLen, paretoNum)
-		return length
-	}
-	for i := index + 1; i < n; i++ {
-		*curr = append(*curr, (*transitions)[i])
-		// color.Magenta("For, with i=%d, curr=%v", i, curr)
+// func PowerSetOld(
+// 	transitions *[]types.Transition,
+// 	index int,
+// 	curr *[]types.Transition,
+// 	maxWLen int,
+// 	statesAmt int,
+// 	paretoNum int,
+// ) int {
+// 	n := len(*transitions)
+// 	if index == n-1 {
+// 		color.Cyan("Got to end of recursion, n=%d", n)
+// 		tc := timecea.New(statesAmt)
+// 		for _, tr := range *transitions {
+// 			tc.RegisterTransition(tr)
+// 		}
+// 		length := tc.TestAutomataForPareto(maxWLen, paretoNum)
+// 		return length
+// 	}
+// 	for i := index + 1; i < n; i++ {
+// 		*curr = append(*curr, (*transitions)[i])
+// 		// color.Magenta("For, with i=%d, curr=%v", i, curr)
 
-		length := PowerSetOld(transitions, i, curr, maxWLen, statesAmt, paretoNum)
-		if length == -1 {
-			color.Blue("Case length == -1")
-			*curr = (*curr)[:len(*curr)-1]
-		} else {
-			// color.Red("Return Length")
-			return length
-		}
-		color.Red("Final del loop")
+// 		length := PowerSetOld(transitions, i, curr, maxWLen, statesAmt, paretoNum)
+// 		if length == -1 {
+// 			color.Blue("Case length == -1")
+// 			*curr = (*curr)[:len(*curr)-1]
+// 		} else {
+// 			// color.Red("Return Length")
+// 			return length
+// 		}
+// 		color.Red("Final del loop")
 
-	}
-	return -1
-}
+// 	}
+// 	return -1
+// }
 
 func PowerSetFound(
 	curr *[]types.Transition,
@@ -114,10 +117,12 @@ func PowerSet(transitions *[]types.Transition,
 	maxWLen int,
 	statesAmt int,
 	paretoNum int,
-) int {
+) (int, []types.Transition) {
 	size := len(*transitions)
 	n := combinations.New(size)
-	for trAmt := range size + 1 {
+	for trAmt := statesAmt; statesAmt <= size; trAmt++ {
+		fmt.Print("Testing with combinations of ", trAmt, " transitions\n")
+		p := progressbar.Default(int64(combin.Binomial(size, trAmt)))
 		n.Reset(trAmt)
 		for ok := true; ok; {
 			testCase := make([]types.Transition, trAmt)
@@ -125,12 +130,13 @@ func PowerSet(transitions *[]types.Transition,
 				testCase[i] = (*transitions)[index]
 			}
 			if found, length := PowerSetFound(&testCase, maxWLen, statesAmt, paretoNum); found {
-				return length
+				return length, testCase
 			}
 			ok = n.Next()
+			p.Add(1)
 		}
 	}
-	return -1
+	return -1, []types.Transition{}
 }
 
 // func PowerSet(

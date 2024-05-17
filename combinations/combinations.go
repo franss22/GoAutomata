@@ -52,7 +52,6 @@ func (n *Nums) incrementVal(index int, max int) bool {
 		n.List[index]++
 		return true
 	}
-
 }
 
 func (n *Nums) ToOnes() ones.Ones {

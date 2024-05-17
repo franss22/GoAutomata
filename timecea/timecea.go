@@ -6,13 +6,25 @@ import (
 
 type TransitionMap map[types.TransitionInput][]types.TransitionOutput
 
-type ClockMap map[types.State][]types.Clock
+type ClockMap map[types.State]types.ClockSet
 
 func (cm ClockMap) AddClock(q types.State, clock types.Clock) {
-	cm[q] = append((cm)[q], clock)
+	if cm[q] == nil {
+		cm[q] = types.ClockSet{}
+	}
+	for otherclock := range cm[q] {
+		if otherclock.LessOrEqualThan(clock) {
+			return
+		}
+		if clock.LessOrEqualThan(otherclock) {
+			delete(cm[q], otherclock)
+		}
+	}
+	cm[q][clock] = struct{}{}
 }
 
 type TimeCEA struct {
+	paretoFound bool
 	StatesAmt   int
 	ClocksAmt   int
 	Q0          types.State
@@ -21,7 +33,7 @@ type TimeCEA struct {
 }
 
 func New(statesAmt int) TimeCEA {
-	return TimeCEA{StatesAmt: statesAmt, ClocksAmt: 2, Q0: 0, Transitions: TransitionMap{}, Clocks: ClockMap{0: []types.Clock{{Clock1: 0, Clock2: 0}}}}
+	return TimeCEA{paretoFound: false, StatesAmt: statesAmt, ClocksAmt: 2, Q0: 0, Transitions: TransitionMap{}, Clocks: ClockMap{0: types.ClockSet{types.Clock{Clock1: 0, Clock2: 0}: struct{}{}}}}
 }
 
 func (tc *TimeCEA) RegisterTransition(tr types.Transition) {
@@ -33,14 +45,14 @@ func (tc *TimeCEA) ReceiveWord(w types.Word) {
 	newClocks := ClockMap{}
 
 	for initialState, clocks := range tc.Clocks {
-		for _, clock := range clocks {
+		for clock := range clocks {
 			tc.ExecuteTransition(initialState, clock, w, newClocks)
 		}
 	}
-	for state, clocks := range newClocks {
-		// O(n^2)
-		newClocks[state] = types.GetPareto(clocks)
-	}
+	// for state, clocks := range newClocks {
+	// 	// O(n^2)
+	// 	newClocks[state] = types.GetPareto(clocks)
+	// }
 	tc.Clocks = newClocks
 }
 
@@ -54,7 +66,9 @@ func (tc *TimeCEA) ExecuteTransition(currentState types.State, clock types.Clock
 				clocks.AddClock(output.Q, newClock)
 			}
 		}
+
 	}
+	clocks.AddClock(tc.Q0, types.Clock{Clock1: 0, Clock2: 0})
 }
 
 // O(N^4)

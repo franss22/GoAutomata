@@ -2,6 +2,10 @@ package main
 
 import (
 	"automata/combinations"
+	"automata/generator"
+	"automata/timecea"
+	"automata/types"
+	"fmt"
 	"math"
 	_ "net/http/pprof"
 
@@ -39,8 +43,72 @@ func main() {
 	// }()
 
 	// fmt.Printf("%s (%v)\n", onesToPretty(nums.ToOnes().List), nums.List)
-	CalcCombinations(30)
+	// CalcCombinations(30)
+	GetMinStatesForEveryPareto(20)
 
+	// TestOneThing()
+
+}
+
+func GetMinStatesForEveryPareto(maxPareto int) {
+	for paretonum := 2; paretonum < maxPareto; paretonum++ {
+		for statesAmt := 2; ; statesAmt++ {
+			fmt.Print("\nTesting pareto ", paretonum, " with ", statesAmt, " states\n")
+			transitions := generator.GenerateAllTransitions(paretonum, statesAmt)
+			if length, transitions := generator.PowerSet(&transitions, int(math.Round(math.Max(math.Pow(2, float64(statesAmt)), math.Pow(2, float64(paretonum))))), statesAmt, paretonum); length != -1 {
+
+				fmt.Print("Found paretonum ", paretonum, " with ", statesAmt, " states and wlen ", length, "\n")
+				fmt.Print("Transitions: \n")
+				for _, trans := range transitions {
+					fmt.Print(trans)
+				}
+				break
+			}
+		}
+	}
+}
+
+func TestOneThing() {
+	c := timecea.New(2)
+	c.RegisterTransition(
+		types.Transition{
+			Input: types.TransitionInput{
+				P: 0,
+				L: 'a',
+			},
+			Output: types.TransitionOutput{
+				Q: 1,
+				Cond: types.ClockCondition{
+					Cond1: -1,
+					Cond2: -1,
+				},
+				Resets: types.ClockReset{
+					Reset1: false,
+					Reset2: false,
+				},
+			},
+		},
+	)
+	c.RegisterTransition(
+		types.Transition{
+			Input: types.TransitionInput{
+				P: 1,
+				L: 'a',
+			},
+			Output: types.TransitionOutput{
+				Q: 1,
+				Cond: types.ClockCondition{
+					Cond1: -1,
+					Cond2: -1,
+				},
+				Resets: types.ClockReset{
+					Reset1: false,
+					Reset2: true,
+				},
+			},
+		},
+	)
+	fmt.Print("Pareto?: ", c.TestAutomataForPareto(4, 2), "\n")
 }
 
 func CalcCombinations(size int) {
