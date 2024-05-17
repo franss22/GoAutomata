@@ -61,42 +61,6 @@ func GenerateAllTransitions(paretoNum int, statesAmt int) []types.Transition {
 	return result
 }
 
-// func PowerSetOld(
-// 	transitions *[]types.Transition,
-// 	index int,
-// 	curr *[]types.Transition,
-// 	maxWLen int,
-// 	statesAmt int,
-// 	paretoNum int,
-// ) int {
-// 	n := len(*transitions)
-// 	if index == n-1 {
-// 		color.Cyan("Got to end of recursion, n=%d", n)
-// 		tc := timecea.New(statesAmt)
-// 		for _, tr := range *transitions {
-// 			tc.RegisterTransition(tr)
-// 		}
-// 		length := tc.TestAutomataForPareto(maxWLen, paretoNum)
-// 		return length
-// 	}
-// 	for i := index + 1; i < n; i++ {
-// 		*curr = append(*curr, (*transitions)[i])
-// 		// color.Magenta("For, with i=%d, curr=%v", i, curr)
-
-// 		length := PowerSetOld(transitions, i, curr, maxWLen, statesAmt, paretoNum)
-// 		if length == -1 {
-// 			color.Blue("Case length == -1")
-// 			*curr = (*curr)[:len(*curr)-1]
-// 		} else {
-// 			// color.Red("Return Length")
-// 			return length
-// 		}
-// 		color.Red("Final del loop")
-
-// 	}
-// 	return -1
-// }
-
 func PowerSetFound(
 	curr *[]types.Transition,
 	maxWLen int,
@@ -120,66 +84,96 @@ func PowerSet(transitions *[]types.Transition,
 ) (int, []types.Transition) {
 	size := len(*transitions)
 	n := combinations.New(size)
+
+	THREAD_N := 8
+
 	for trAmt := statesAmt; statesAmt <= size; trAmt++ {
 		fmt.Print("Testing with combinations of ", trAmt, " transitions\n")
-		p := progressbar.Default(int64(combin.Binomial(size, trAmt)))
+		iters := int64(combin.Binomial(size, trAmt))
+		threadIters := int(iters/int64(THREAD_N) + 1)
+
+		p := progressbar.Default(iters)
+
 		n.Reset(trAmt)
-		for ok := true; ok; {
-			testCase := make([]types.Transition, trAmt)
-			for i, index := range n.List {
-				testCase[i] = (*transitions)[index]
-			}
-			if found, length := PowerSetFound(&testCase, maxWLen, statesAmt, paretoNum); found {
-				return length, testCase
-			}
-			ok = n.Next()
-			p.Add(1)
+		quit := make(chan bool)
+		results := make(chan (bool, int, []types.Transition))//st5ruct de las 3 cosas
+		//N veces
+		for range THREAD_N {
+			go ParallelChecking(n, trAmt, transitions, maxWLen, statesAmt, paretoNum, int(threadIters), quit)
+			n.Advance(threadIters)
+		}
+		//esperar los resultados
+		if shouldReturn {
+			return Length, testCase
 		}
 	}
 	return -1, []types.Transition{}
 }
 
-// func PowerSet(
-// 	transitions *[]types.Transition,
-// 	maxWLen int,
-// 	statesAmt int,
-// 	paretoNum int,
-// ) int {
-// 	n := len(*transitions)
-// 	bitarray := bitarray(n)
-// 	for bitarray.isNotAllTrue() {
-// 		testTr := make([]types.Transition, 0, n)
-// 		for i := range n {
+func ParallelChecking(n combinations.Nums, trAmt int, transitions *[]types.Transition, maxWLen int, statesAmt int, paretoNum int, threadIters int, quit chan bool) (bool, int, []types.Transition) {
+	pNums := n.NewPnums(int(threadIters))
+	for ok := true; ok; {
+		select {
+        case <- quit:
+            return false, 0, nil
+        default:
+            testCase := make([]types.Transition, trAmt)
+		for i, index := range pNums.Indexes() {
+			testCase[i] = (*transitions)[index]
+		}
+		if found, length := PowerSetFound(&testCase, maxWLen, statesAmt, paretoNum); found {
+			return true, length, testCase
+		}
+		ok = n.Next()
+        }
+	}
+	
 
-// 		}
-// 	}
+	shouldReturn, Length, testCase := CheckCombinationsWithNTransitions(trAmt, &pNums, transitions, maxWLen, statesAmt, paretoNum, quit)
 
-// }
+	//mandar shouldReturn, Length, testCase al proceso padre
+}
 
-// type Counter struct {
-// 	Count []int
-// 	Max int
+func CheckCombinationsWithNTransitions(trAmt int, n combinations.Combinator, transitions *[]types.Transition, maxWLen int, statesAmt int, paretoNum int) (bool, int, []types.Transition) {
+	for ok := true; ok; {
+		testCase := make([]types.Transition, trAmt)
+		for i, index := range n.Indexes() {
+			testCase[i] = (*transitions)[index]
+		}
+		if found, length := PowerSetFound(&testCase, maxWLen, statesAmt, paretoNum); found {
+			return true, length, testCase
+		}
+		ok = n.Next()
+		// p.Add(1)
+	}
+	return false, 0, nil
+}
 
-// }
+/*
+n Nums [1, 2, 3]
+..... iter N
+n Nums [8, 9, 10]
 
-// func newCounter(cap int) Counter {
-// 	return Counter{Count: make([]int, 0, cap), Max:cap}
-// }
 
-// func (c * Counter) AddDigit() {
-// 	c.Count = append(c.Count, 0)
-// }
+N /8
+nx8
+n0 -> N/8*0 go routine func copy(n)
+n avanza N/8
+n1 -> N/8*1  go routine func copy(n)
+n avanza N/8
+n2 -> N/8*2
+n1 -> N/8*1
+n1 -> N/8*1
+n1 -> N/8*1
 
-// func (c * Counter) IncrementDigit(index int) bool{
 
-// }
-// func (c *Counter) Increment() {
-// 	if (len(c.Count)==0) {
-// 		c.AddDigit()
-// 	}
-// 	i := len(c.Count)-1
-// 	if digit := c.Count[i]; digit == 0 {
-// 		panic("asassaas")
-// 	}
 
-// }
+
+Sea:
+n el iterador de combinaciones, con T cantidad de transiciones y K indices, con L combinaciones posibles
+n(i) el iterador en la i-esima combinación
+n(0) -> 1^K 0^(T-K)
+//n(0)[T=5, K=3] 11100 / [0, 1, 2]
+
+
+*/

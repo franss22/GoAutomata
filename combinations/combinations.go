@@ -1,11 +1,18 @@
 package combinations
 
-import "automata/ones"
-
 type Nums struct {
 	List    []int
 	ValsAmt int
 	MaxVal  int
+}
+
+type Combinator interface {
+	Next() bool
+	Indexes() []int
+}
+
+func (n *Nums) Indexes() []int {
+	return n.List
 }
 
 func New(size int) Nums {
@@ -34,6 +41,12 @@ func (n *Nums) Next() bool {
 	return n.incrementVal(index, max)
 
 }
+func (n *Nums) Advance(iters int) *Nums {
+	for range iters {
+		n.Next()
+	}
+	return n
+}
 
 func (n *Nums) incrementVal(index int, max int) bool {
 	val := n.List[index]
@@ -54,15 +67,22 @@ func (n *Nums) incrementVal(index int, max int) bool {
 	}
 }
 
-func (n *Nums) ToOnes() ones.Ones {
-	size := n.MaxVal + 1
-	ones := ones.New(size)
-	// ones.List = make([]int, size)
-	// color.Red("%v", ones.List)
-	ones.OneAmount = n.ValsAmt
-	for _, i := range n.List {
-		ones.List[i] = 1
-	}
-	ones.CountRightmostOnes()
-	return ones
+type PNums struct {
+	Nums  Nums
+	Iters int
+}
+
+func (pn *PNums) Next() bool {
+	pn.Iters--
+	return pn.Nums.Next() && pn.Iters > 0
+}
+
+func (pn *PNums) Indexes() []int {
+	return pn.Nums.List
+}
+
+func (n *Nums) NewPnums(maxIters int) PNums {
+	newNums := New(n.MaxVal + 1)
+	newNums.List = n.List
+	return PNums{Nums: newNums, Iters: maxIters}
 }

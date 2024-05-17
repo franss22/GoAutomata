@@ -1,8 +1,6 @@
 package types
 
-import (
-	"sort"
-)
+import "container/list"
 
 const NO_COND Time = -1
 
@@ -34,7 +32,7 @@ type Clock struct {
 	Clock2 Time
 }
 
-type ClockSet map[Clock]struct{}
+type ClockSet list.List
 
 func (c *Clock) LessOrEqualThan(c2 Clock) bool {
 	return c.Clock1 <= c2.Clock1 && c.Clock2 <= c2.Clock2
@@ -61,45 +59,45 @@ func (c *Clock) ProcessWordNewClock(w Word) Clock {
 	return Clock{c.Clock1 + w.TimeDelta, c.Clock2 + w.TimeDelta}
 }
 
-// O(n)
-// (2,1) (1,2) (3,3) devuelve (2,1) (1,2)
-func (clock *Clock) IsMinimal(clocks []Clock) bool {
-	for _, otherclock := range clocks {
-		if otherclock == *clock {
-			continue
-		}
-		if otherclock.LessOrEqualThan(*clock) {
-			return false
-		}
-	}
-	return true
-}
+// // O(n)
+// // (2,1) (1,2) (3,3) devuelve (2,1) (1,2)
+// func (clock *Clock) IsMinimal(clocks []Clock) bool {
+// 	for _, otherclock := range clocks {
+// 		if otherclock == *clock {
+// 			continue
+// 		}
+// 		if otherclock.LessOrEqualThan(*clock) {
+// 			return false
+//list
+// 	}
+// 	return true
+// }
 
-func (clockset ClockSet) Sort() []Clock {
-	result := []Clock{}
-	for clock := range clockset {
-		result = append(result, clock)
-	}
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].LessOrEqualThan(result[j])
-	})
+// func (clockset ClockSet) Sort() []Clock {
+// 	result := []Clock{}
+// 	for clock := range clockset {
+// 		result = append(result, clock)
+// 	}
+// 	sort.Slice(result, func(i, j int) bool {
+// 		return result[i].LessOrEqualThan(result[j])
+// 	})
 
-	return result
-}
+// 	return result
+// }
 
-// O(n^2) (podría ser O(nlogn))
-func GetPareto(cs ClockSet) ClockSet {
-	ret := ClockSet{}
-	sortedClocks := cs.Sort()
+// // O(n^2) (podría ser O(nlogn))
+// func GetPareto(cs ClockSet) ClockSet {
+// 	ret := ClockSet{}
+// 	sortedClocks := cs.Sort()
 
-	// fmt.Print(sortedClocks, "\n")
-	for clock := range cs {
-		if clock.IsMinimal(sortedClocks) {
-			ret[clock] = struct{}{}
-		}
-	}
-	return ret
-}
+// 	// fmt.Print(sortedClocks, "\n")
+// 	for clock := range cs {
+// 		if clock.IsMinimal(sortedClocks) {
+// 			ret[clock] = struct{}{}
+// 		}
+// 	}
+// 	return ret
+// }
 
 type Transition struct {
 	Input  TransitionInput
