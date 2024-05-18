@@ -1,18 +1,24 @@
 package combinations
 
 type Nums struct {
-	List    []int
-	ValsAmt int
-	MaxVal  int
+	List      []int
+	ValsAmt   int
+	MaxVal    int
+	ItersDone int
 }
 
 type Combinator interface {
 	Next() bool
 	Indexes() []int
+	CurrentIteration() int
 }
 
 func (n *Nums) Indexes() []int {
 	return n.List
+}
+
+func (n *Nums) CurrentIteration() int {
+	return n.ItersDone
 }
 
 func New(size int) Nums {
@@ -29,6 +35,7 @@ func (n *Nums) Reset(valsAmt int) {
 		l[i] = i
 	}
 	n.List = l
+	n.ItersDone = 0
 }
 
 func (n *Nums) Next() bool {
@@ -37,6 +44,7 @@ func (n *Nums) Next() bool {
 	}
 	index := n.ValsAmt - 1
 	max := n.MaxVal
+	n.ItersDone++
 
 	return n.incrementVal(index, max)
 
@@ -68,8 +76,9 @@ func (n *Nums) incrementVal(index int, max int) bool {
 }
 
 type PNums struct {
-	Nums  Nums
-	Iters int
+	Nums             Nums
+	Iters            int
+	ItersDoneAtStart int
 }
 
 func (pn *PNums) Next() bool {
@@ -81,8 +90,14 @@ func (pn *PNums) Indexes() []int {
 	return pn.Nums.List
 }
 
+func (pn *PNums) CurrentIteration() int {
+	return pn.Nums.ItersDone
+}
+
 func (n *Nums) NewPnums(maxIters int) PNums {
 	newNums := New(n.MaxVal + 1)
-	newNums.List = n.List
-	return PNums{Nums: newNums, Iters: maxIters}
+	newNums.List = make([]int, len(n.List))
+	newNums.ValsAmt = n.ValsAmt
+	copy(newNums.List, n.List)
+	return PNums{Nums: newNums, Iters: maxIters, ItersDoneAtStart: n.ItersDone}
 }

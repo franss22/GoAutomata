@@ -2,10 +2,10 @@ package main
 
 import (
 	"automata/generator"
-	"fmt"
 	"math"
 	_ "net/http/pprof"
 
+	"github.com/fatih/color"
 	"github.com/pkg/profile"
 )
 
@@ -20,14 +20,13 @@ func main() {
 func GetMinStatesForEveryPareto(maxPareto int) {
 	for paretonum := 2; paretonum < maxPareto; paretonum++ {
 		for statesAmt := 2; ; statesAmt++ {
-			fmt.Print("\nTesting pareto ", paretonum, " with ", statesAmt, " states\n")
+			color.Red("\n=============================\nTesting pareto %d with %d states \n=============================\n", paretonum, statesAmt)
 			transitions := generator.GenerateAllTransitions(paretonum, statesAmt)
 			if length, transitions := generator.PowerSet(&transitions, int(math.Round(math.Max(math.Pow(2, float64(statesAmt)), math.Pow(2, float64(paretonum))))), statesAmt, paretonum); length != -1 {
 
-				fmt.Print("Found paretonum ", paretonum, " with ", statesAmt, " states and wlen ", length, "\n")
-				fmt.Print("Transitions: \n")
+				color.Yellow("Found paretonum %d with %d states and wlen %d\nTransitions: \n", paretonum, statesAmt, length)
 				for _, trans := range transitions {
-					fmt.Println(trans)
+					color.Green("\t%v\n", trans)
 				}
 				break
 			}

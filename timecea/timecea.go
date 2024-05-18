@@ -5,6 +5,11 @@ import (
 	"container/list"
 )
 
+// transitionmap podría ser una lista 2d de listas de outputs (transition input es una tupla (int, byte))
+// ocuparía harta mas memoria, y crear un nuevo TimeCEA sería lento
+// posiblemente sería bueno usar un sparse array si es que es rápido
+// como statesAmt es muy chiquito (por ahora siempre 2) hacer 255 arrays de tamaño statesAmt no ocuparía tanta memoria
+// type [][][]types.TransitionOutput
 type TransitionMap map[types.TransitionInput][]types.TransitionOutput
 
 type ClockArray []*list.List
@@ -58,7 +63,13 @@ func New(statesAmt int) TimeCEA {
 }
 
 func (tc *TimeCEA) RegisterTransition(tr types.Transition) {
-	tc.Transitions[tr.Input] = append(tc.Transitions[tr.Input], tr.Output)
+	outputs, ok := tc.Transitions[tr.Input]
+	if !ok {
+		tc.Transitions[tr.Input] = append(make([]types.TransitionOutput, 0, tc.StatesAmt), tr.Output)
+	} else {
+
+		tc.Transitions[tr.Input] = append(outputs, tr.Output)
+	}
 }
 
 // O(n^3)
