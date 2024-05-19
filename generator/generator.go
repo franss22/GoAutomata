@@ -19,7 +19,7 @@ var resetOptions = [...]types.ClockReset{
 }
 
 func GenerateAllTransitions(paretoNum int, statesAmt int) []types.Transition {
-	maxConds := max(statesAmt*2, paretoNum*2)
+	maxConds := 0 //max(statesAmt*2, paretoNum*2)
 	resultSize := (maxConds + 1) * (maxConds + 1) * 4 * 1 * statesAmt * statesAmt
 	result := make([]types.Transition, 0, resultSize)
 	// color.Yellow("cap=%d, len=%d, resultSize=%d", cap(result), len(result), resultSize)
@@ -93,7 +93,7 @@ type ParetoParams struct {
 }
 
 const THREAD_N = 16
-const MAX_TRANSITIONS = 4
+const MAX_TRANSITIONS = 10
 
 func PowerSet(transitions *[]types.Transition,
 	maxWLen int,

@@ -23,7 +23,7 @@ func main() {
 		fmt.Printf("%d, ", i)
 		tempOut := os.Stdout
 		// os.Stdout = nil
-		GetMinStatesForEveryPareto(5, true)
+		GetMinStatesForEveryPareto(MAX_PARETO, true)
 		os.Stdout = tempOut
 
 	}
@@ -32,11 +32,14 @@ func main() {
 
 }
 
-const MAX_STATES = 2
+const MIN_PARETO_NUM = 5
+const MIN_STATES_AMT = 6
+const MAX_STATES = 10
+const MAX_PARETO = 10
 
 func GetMinStatesForEveryPareto(maxPareto int, parallel bool) {
-	for paretonum := 2; paretonum < maxPareto; paretonum++ {
-		for statesAmt := 2; MAX_STATES == -1 || statesAmt <= MAX_STATES; statesAmt++ {
+	for paretonum := MIN_PARETO_NUM; paretonum < maxPareto; paretonum++ {
+		for statesAmt := MIN_STATES_AMT; MAX_STATES == -1 || statesAmt <= MAX_STATES; statesAmt++ {
 			fmt.Print(color.RedString("\n=============================\nTesting pareto %d with %d states \n=============================\n", paretonum, statesAmt))
 			transitions := generator.GenerateAllTransitions(paretonum, statesAmt)
 			maxWlen := int(math.Round(math.Max(math.Pow(2, float64(statesAmt)), math.Pow(2, float64(paretonum)))))
@@ -47,6 +50,9 @@ func GetMinStatesForEveryPareto(maxPareto int, parallel bool) {
 					fmt.Print(color.GreenString("\t%v\n", trans))
 				}
 				break
+			} else {
+				fmt.Printf("%d\n", maxWlen)
+
 			}
 		}
 	}
