@@ -93,17 +93,19 @@ type ParetoParams struct {
 }
 
 const THREAD_N = 16
-const PARALLEL = true
+const MAX_TRANSITIONS = 4
 
 func PowerSet(transitions *[]types.Transition,
 	maxWLen int,
 	statesAmt int,
 	paretoNum int,
+	parallel bool,
 ) (int, []types.Transition) {
 	size := len(*transitions)
 	n := combinations.New(size)
 
-	for trAmt := statesAmt; statesAmt <= size; trAmt++ {
+	for trAmt := statesAmt; statesAmt <= min(size, MAX_TRANSITIONS); trAmt++ {
+
 		pp := ParetoParams{
 			trAmt:       trAmt,
 			transitions: transitions,
@@ -114,14 +116,14 @@ func PowerSet(transitions *[]types.Transition,
 		iters := int64(combin.Binomial(size, trAmt))
 
 		n.Reset(trAmt)
-		color.Blue("\nTesting with combinations of %d transitions (%d combinations per thread)\n", trAmt, int(iters/int64(THREAD_N)+1))
+		fmt.Print(color.BlueString("\nTesting with combinations of %d transitions (%d combinations per thread)\n", trAmt, int(iters/int64(THREAD_N)+1)))
 
 		// fmt.Printf("iters: %d, t_iters: %d, t_iters sum: %d\n", iters, int(iters/int64(THREAD_N)+1), int(iters/int64(THREAD_N)+1)*THREAD_N)
 		var shouldReturn bool
 		var length int
 		var testCase []types.Transition
-		if PARALLEL {
-			shouldReturn, length, testCase = RevisarParalelo(THREAD_N, n, int(iters/int64(THREAD_N)+1), pp)
+		if parallel {
+			shouldReturn, length, testCase = ParallelCheckCombinationsWithNTransitions(THREAD_N, n, int(iters/int64(THREAD_N)+1), pp)
 		} else {
 			shouldReturn, length, testCase = CheckCombinationsWithNTransitions(pp, &n, progressbar.Default(iters))
 		}
@@ -133,31 +135,31 @@ func PowerSet(transitions *[]types.Transition,
 	return -1, []types.Transition{}
 }
 
-func RevisarParalelo(THREAD_N int, n combinations.Nums, threadIters int, pp ParetoParams) (bool, int, []types.Transition) {
-	resultsChannel := make(chan CheckResult, THREAD_N)
+func ParallelCheckCombinationsWithNTransitions(ROUTINE_N int, n combinations.Nums, routIters int, pp ParetoParams) (bool, int, []types.Transition) {
+	resultsChannel := make(chan CheckResult, ROUTINE_N)
 
-	color.Cyan("Starting %d threads...", THREAD_N)
-	for i := range THREAD_N {
-		pnums := n.NewPnums(threadIters)
-		go ParallelChecking(pp, pnums, int(threadIters), resultsChannel)
+	fmt.Print(color.CyanString("Starting %d threads...", ROUTINE_N))
+	for i := range ROUTINE_N {
+		pnums := n.NewPnums(routIters)
+		go ParallelChecking(pp, pnums, int(routIters), resultsChannel)
 		fmt.Print(color.CyanString(" %d,", i))
-		n.Advance(threadIters)
+		n.Advance(routIters)
 	}
 
-	fmt.Print(" Done. Waiting for threads....\n")
-	fmt.Printf("Waiting for thread ")
+	fmt.Print(" Done...\n")
+	fmt.Printf("Waiting for routines ")
 
-	for i := range THREAD_N {
+	for i := range ROUTINE_N {
 		fmt.Printf("%d...", i)
 		res := <-resultsChannel
 
 		if res.ShouldReturn {
-			color.Green("Found match in combination %d\n", res.Iter)
+			fmt.Print(color.GreenString("Found match in combination %d\n", res.Iter))
 			return true, res.Length, res.TestCase
 		}
 
 	}
-	color.Magenta("Nothing Found\n")
+	fmt.Print(color.MagentaString("Nothing Found\n"))
 	return false, -1, nil
 }
 
