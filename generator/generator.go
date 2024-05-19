@@ -4,6 +4,7 @@ import (
 	"automata/combinations"
 	"automata/timecea"
 	"automata/types"
+	"context"
 	"fmt"
 
 	"github.com/fatih/color"
@@ -137,45 +138,60 @@ func PowerSet(transitions *[]types.Transition,
 
 func ParallelCheckCombinationsWithNTransitions(ROUTINE_N int, n combinations.Nums, routIters int, pp ParetoParams) (bool, int, []types.Transition) {
 	resultsChannel := make(chan CheckResult, ROUTINE_N)
+	ctx, ctxCancel := context.WithCancel(context.Background())
 
-	fmt.Print(color.CyanString("Starting %d threads...", ROUTINE_N))
-	for i := range ROUTINE_N {
-		pnums := n.NewPnums(routIters)
-		go ParallelChecking(pp, pnums, int(routIters), resultsChannel)
-		fmt.Print(color.CyanString(" %d,", i))
-		n.Advance(routIters)
-	}
+	fmt.Print(color.CyanString("Starting [%d] routines...", ROUTINE_N))
+	go ParallelStart(ctx, ROUTINE_N, n, routIters, pp, resultsChannel)
 
-	fmt.Print(" Done...\n")
-	fmt.Printf("Waiting for routines ")
+	fmt.Printf("Waiting for (%d) routines...\n ", ROUTINE_N)
 
 	for i := range ROUTINE_N {
-		fmt.Printf("%d...", i)
+		fmt.Printf("(%d),", i)
 		res := <-resultsChannel
 
 		if res.ShouldReturn {
 			fmt.Print(color.GreenString("Found match in combination %d\n", res.Iter))
+			ctxCancel()
 			return true, res.Length, res.TestCase
 		}
 
 	}
+	ctxCancel()
 	fmt.Print(color.MagentaString("Nothing Found\n"))
 	return false, -1, nil
 }
 
-func ParallelChecking(pp ParetoParams, pNums combinations.PNums, threadIters int, results chan CheckResult) {
-	for ok := true; ok; {
-
-		testCase := make([]types.Transition, pp.trAmt)
-		for i, index := range pNums.Indexes() {
-			testCase[i] = (*pp.transitions)[index]
-		}
-		if found, length := PowerSetFound(&testCase, pp.maxWLen, pp.statesAmt, pp.paretoNum); found {
-			// fmt.Printf("FOUND IN ITER %d\n", pNums.CurrentIteration())
-			results <- CheckResult{true, length, testCase, pNums.Nums.ItersDone}
+func ParallelStart(ctx context.Context, ROUTINE_N int, n combinations.Nums, routIters int, pp ParetoParams, resultsChannel chan CheckResult) {
+	for i := range ROUTINE_N {
+		select {
+		case <-ctx.Done():
 			return
+		default:
+			pnums := n.NewPnums(routIters)
+			go ParallelChecking(pp, pnums, int(routIters), resultsChannel, ctx)
+			fmt.Print(color.CyanString(" [%d],", i))
+			n.Advance(routIters)
 		}
-		ok = pNums.Next()
+	}
+}
+
+func ParallelChecking(pp ParetoParams, pNums combinations.PNums, threadIters int, results chan CheckResult, ctx context.Context) {
+	for ok := true; ok; {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			testCase := make([]types.Transition, pp.trAmt)
+			for i, index := range pNums.Indexes() {
+				testCase[i] = (*pp.transitions)[index]
+			}
+			if found, length := PowerSetFound(&testCase, pp.maxWLen, pp.statesAmt, pp.paretoNum); found {
+				// fmt.Printf("FOUND IN ITER %d\n", pNums.CurrentIteration())
+				results <- CheckResult{true, length, testCase, pNums.Nums.ItersDone}
+				return
+			}
+			ok = pNums.Next()
+		}
 	}
 	results <- CheckResult{false, -1, nil, -1}
 
